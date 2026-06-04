@@ -1,8 +1,11 @@
 import json
 import llm_prompt
-import spot
 import pandas as pd
 from spot_utils import *
+try:
+    import spot
+except ImportError:
+    spot = None
 from tqdm import tqdm
 import itertools
 import os

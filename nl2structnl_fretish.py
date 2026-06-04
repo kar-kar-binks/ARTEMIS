@@ -1,6 +1,5 @@
 import json
 import llm_prompt
-import spot
 import pandas as pd
 from spot_utils import *
 from tqdm import tqdm
@@ -554,7 +553,7 @@ def get_ltl_from_output(output,ltl_template=None):
         for k in item_list:
             if k in output and output[k] is not None and k in ltl_template:
                 if k != "N_DURATION":
-                    cur_exp = spot.formula(output[k]).to_str(parenth=True)
+                    cur_exp = parenthesize(output[k])
                     if cur_exp == "1":
                         cur_exp = "TRUE"
                     elif cur_exp == "0":

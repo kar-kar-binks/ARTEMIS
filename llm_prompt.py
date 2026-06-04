@@ -51,12 +51,26 @@ def query_openai(local_messages,schema,model="gpt-4o-mini"):
     )
     return response.choices[0].message.content
 
-def query_ollama(local_messages, model="llama3.2"):
+def query_ollama(local_messages, schema=None, model="llama3.2"):
     messages = format_localmessages_to_openai(local_messages)
+    if schema is not None and hasattr(schema, "model_json_schema"):
+        schema_json = schema.model_json_schema()
+        # Inject schema into the system message so the model knows exact enum values
+        schema_instruction = (
+            f"\nYou MUST respond with valid JSON that strictly conforms to this JSON schema "
+            f"(pay special attention to enum values — copy them exactly as written):\n"
+            f"{json.dumps(schema_json, indent=2)}"
+        )
+        # Prepend to existing system message or add a new one
+        if messages and messages[0]["role"] == "system":
+            messages[0]["content"][0]["text"] += schema_instruction
+        else:
+            messages.insert(0, {"role": "system", "content": [{"type": "text", "text": schema_instruction}]})
+    response_format = {"type": "json_object"}
     response = _ollama_client.chat.completions.create(
         model=model,
         messages=messages,
-        response_format={"type": "json_object"},
+        response_format=response_format,
     )
     return response.choices[0].message.content
 
@@ -190,7 +204,7 @@ def prompt_loop(system_prompt, user_prompt, model, max_retry, check_output_func,
         # Treat any unrecognized model as an Ollama model
         local_messages = [{"role":"system","text":system_prompt}, {"role":"user", "text":user_prompt}]
         for trial in range(max_retry):
-            raw_output = query_ollama(local_messages, model=model)
+            raw_output = query_ollama(local_messages, schema=schema, model=model)
             error_msg = check_output_func(raw_output, **kwargs)
             if error_msg is None:
                 break
