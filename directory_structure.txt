@@ -1,0 +1,31 @@
+ARTEMIS/
+│
+├── run_llm.ipynb               ← MAIN ENTRY POINT: run this to generate outputs
+├── compute_accuracy_metrics.ipynb  ← evaluate outputs against ground truth
+├── Plot_results.ipynb          ← plot comparison charts
+│
+├── nl2structnl.py              ← orchestration: picks the right mode, extrapolation
+├── nl2structnl_fretish.py      ← CORE: prompts, schema, LTL lookup, validation (FRETish)
+├── nl2structnl_PSP.py          ← same but for PSP format
+├── llm_prompt.py               ← LLM API calls (OpenAI / Gemini / Ollama)
+├── spot_utils.py               ← formula validation helpers (now pure-Python)
+│
+├── metadata/
+│   └── fretish_structnl_to_ltl_dict.json  ← THE LOOKUP TABLE (270 entries)
+│
+├── benchmarks/
+│   ├── fret_specs/             ← FRETish-mode benchmarks
+│   │   ├── FSM-AP/             ← Autopilot finite state machine
+│   │   ├── FSM-S/              ← Another FSM
+│   │   ├── Ventilator/         ← Medical device
+│   │   ├── REG/                ← Regulator
+│   │   └── RobotExplain/       ← Robotics
+│   └── psp_specs/
+│       └── Thales/             ← Aerospace (Thales), PSP format
+│   (each has PlausibleSpecs.xlsx = requirements + ground-truth LTL)
+│   (FSM-AP also has Variables.xlsx = the atomic propositions dictionary)
+│
+├── PSP_results/ fret_results/  ← saved JSON outputs from previous runs
+│
+└── NL2TL.py / nl2ltl.py / nl2spec.py / deepstl.py / synthTL.py
+                                ← competing baseline methods (for comparison)
