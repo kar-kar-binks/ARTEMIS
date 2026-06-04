@@ -21,3 +21,4 @@ __pycache__/
 # Project Specific Binaries / Archives
 nuXmv-2.1.0-macos.tar.gz
 nuXmv-*/
+/outputs
