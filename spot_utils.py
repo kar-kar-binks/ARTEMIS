@@ -74,15 +74,26 @@ def parenthesize(f_str):
 # ---------------------------------------------------------------------------
 
 def filter_ltl_formula(f_str):
-    spot_f = _spot.formula(f_str)
-    spot_f = _spot.unabbreviate(spot_f, "RW")
-    new_f_str = spot_f.to_str(parenth=True)
-    if new_f_str == "1":
-        return "TRUE"
-    elif new_f_str == "0":
-        return "FALSE"
-    else:
-        return new_f_str.replace("(0)","(FALSE)").replace("(1)","(TRUE)").replace("(1 ","(TRUE ")
+    if _SPOT_AVAILABLE and hasattr(_spot, 'unabbreviate'):
+        spot_f = _spot.formula(f_str)
+        spot_f = _spot.unabbreviate(spot_f, "RW")
+        new_f_str = spot_f.to_str(parenth=True)
+        if new_f_str == "1":
+            return "TRUE"
+        elif new_f_str == "0":
+            return "FALSE"
+        else:
+            return new_f_str.replace("(0)","(FALSE)").replace("(1)","(TRUE)").replace("(1 ","(TRUE ")
+    # Pure-Python fallback (no spot or spot missing unabbreviate)
+    f_str = f_str.strip()
+    # Normalize standalone boolean constants for NuSMV
+    f_str = re.sub(r'\bTRUE\b', 'TRUE', f_str)
+    f_str = re.sub(r'\bFALSE\b', 'FALSE', f_str)
+    f_str = re.sub(r'(?<![A-Za-z0-9_])1(?![A-Za-z0-9_])', 'TRUE', f_str)
+    f_str = re.sub(r'(?<![A-Za-z0-9_])0(?![A-Za-z0-9_])', 'FALSE', f_str)
+    # Wrap in outer parens for canonical form (idempotent since we always wrap)
+    f_str = f'({f_str})'
+    return f_str
 
 def check_nontrivial_boolean_formula(f_str):
     return not _spot.are_equivalent(f_str,"1") and not _spot.are_equivalent(f_str,"0")

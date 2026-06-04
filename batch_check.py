@@ -3,7 +3,10 @@ import subprocess
 import re
 import json
 from tqdm import tqdm
-import spot
+try:
+    import spot
+except ImportError:
+    spot = None
 import itertools
 import spot_utils
 from automaton_utils import *

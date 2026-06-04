@@ -1,4 +1,7 @@
-import spot
+try:
+    import spot
+except ImportError:
+    spot = None
 from batch_check import *
 
 def get_all_metrics(ltl_list,label_ltl_list,equal_only=False,timeout=None,is_parallel=False,nusmv_jobs_per_thread=1,bmc_k=None):
