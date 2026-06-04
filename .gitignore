@@ -1,0 +1,23 @@
+# Python Virtual Environments
+myenv/
+venv/
+.venv/
+env/
+ENV/
+
+# Python cache and bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Project Specific Binaries / Archives
+nuXmv-2.1.0-macos.tar.gz
+nuXmv-*/
