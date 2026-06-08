@@ -1,5 +1,8 @@
 import re
 
+# spot is an optional dependency (not available on all platforms, e.g. macOS wheels).
+# _SPOT_AVAILABLE gates the model-checking functions at the bottom of this file.
+# Pure-Python helpers above work without spot and are used by nl2structnl_fretish.py.
 try:
     import spot as _spot
     _SPOT_AVAILABLE = True

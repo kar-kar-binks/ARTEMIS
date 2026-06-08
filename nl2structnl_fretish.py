@@ -494,6 +494,12 @@ def get_nl2structnl_translation(input_nl,ap_dict,model="gpt-4o-mini",max_retry=1
     else:
         return []
 
+# Builds the system + user prompt for FRETish structured-NL translation.
+# System prompt = init_cmd_str (expert role) + nl_template_str (composition rules)
+#                 + structnl_format_str (12-field JSON output schema).
+# User prompt   = the NL requirement + atomic_propositions dict serialised as JSON.
+# Called by get_nl2structnl_translation() which is invoked from run_llm.ipynb.
+# Note: the prompt does NOT explain FRETish grammar; the model is expected to know it.
 def get_structNL_prompt_simple(input_nl,ap_dict,dcmp=None,prev_outputs=None,k=10):
     init_cmd_str = "You are an expert in Linear Temporal Logic and requirements engineering. Your job is to translate natural language requirements to structured natural language that capture the intents of the requirements.\n"
     #init_cmd_str += "The structured natural language has an underlying mapping to Linear Temporal Logic.\n"
@@ -507,6 +513,7 @@ def get_structNL_prompt_simple(input_nl,ap_dict,dcmp=None,prev_outputs=None,k=10
 
     input_str = "{\n"
     input_str += f"\"input_natural_language\":\"{input_nl}\",\n"
+    # ap_dict is loaded by data_loader.load_vars() from Variables.xlsx or PlausibleSpecs.xlsx
     input_str += f"\"atomic_propositions\":{json.dumps(ap_dict)},\n"
     if dcmp is not None:
         inverted_dict = {}

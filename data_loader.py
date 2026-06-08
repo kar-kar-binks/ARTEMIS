@@ -94,6 +94,8 @@ def get_all_outputs_for_df_row(df_row,max_N_DURATION=5,group_by_template=False,s
                     output[item] = None
     return res
 
+# Builds a {variable_name: description} dict from a Variables.xlsx sheet.
+# This dict is the "atomic propositions glossary" injected into the LLM prompt.
 def get_ap_dict(var_df):
     ap_dict = {}
     var_names = var_df["variable name"]
@@ -157,6 +159,10 @@ def load_labels(data_home_dir,cur_dataset_name,row_idx,max_N_DURATION=None,cur_d
         assert False
     return label_output_list, label_ltl_list
 
+# Loads the atomic propositions glossary for a dataset.
+# If Variables.xlsx exists, calls get_ap_dict() to build {name: description} from its columns.
+# Otherwise, reads the ap_dict column directly from PlausibleSpecs.xlsx (per-row JSON).
+# The returned dict is passed to get_structNL_prompt_simple() as the prompt's AP glossary.
 def load_vars(data_home_dir,cur_dataset_name,row_idx=None):
     cur_var_file = data_home_dir + cur_dataset_name + "/Variables.xlsx"
     if os.path.exists(cur_var_file):

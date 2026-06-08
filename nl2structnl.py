@@ -13,6 +13,10 @@ import os
 #_MODE_ = "fretish"
 #_MODE_ = "SPS"
 
+# STRUCTNL_MODE selects which format-specific module to use at runtime.
+# Set via os.environ["STRUCTNL_MODE"] = "fretish" (or "PSP") in run_llm.ipynb before importing.
+# "fretish" loads nl2structnl_fretish (FRETish output with 12-field JSON schema).
+# All prompt templates, schema classes, and get_ltl_from_output() come from the selected module.
 if os.getenv("STRUCTNL_MODE") == "fretish":
     from nl2structnl_fretish import *
 elif os.getenv("STRUCTNL_MODE") == "SPS":

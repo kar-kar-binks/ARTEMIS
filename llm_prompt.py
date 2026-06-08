@@ -10,6 +10,8 @@ if os.getenv("OPENAI_API_KEY") is not None:
 else:
     print("WARNING: no OPENAI_API_KEY found!")
 
+# Ollama client uses the OpenAI-compatible REST API that Ollama exposes at port 11434.
+# Override OLLAMA_BASE_URL env var to point at a remote Ollama instance if needed.
 _ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 _ollama_client = openai.OpenAI(base_url=_ollama_base_url, api_key="ollama")
 
@@ -51,6 +53,9 @@ def query_openai(local_messages,schema,model="gpt-4o-mini"):
     )
     return response.choices[0].message.content
 
+# Sends a prompt to a locally-running Ollama model via its OpenAI-compatible endpoint.
+# Because Ollama does not support structured-output natively, the Pydantic JSON schema
+# is injected as plain text into the system message so the model copies enum values exactly.
 def query_ollama(local_messages, schema=None, model="llama3.2"):
     messages = format_localmessages_to_openai(local_messages)
     if schema is not None and hasattr(schema, "model_json_schema"):
@@ -201,7 +206,8 @@ def prompt_loop(system_prompt, user_prompt, model, max_retry, check_output_func,
                         else:
                             raise
     else:
-        # Treat any unrecognized model as an Ollama model
+        # Any model name not matched above is routed to Ollama (local inference).
+        # This lets callers pass e.g. "qwen2.5:32b" without changing prompt_loop's dispatch logic.
         local_messages = [{"role":"system","text":system_prompt}, {"role":"user", "text":user_prompt}]
         for trial in range(max_retry):
             raw_output = query_ollama(local_messages, schema=schema, model=model)
