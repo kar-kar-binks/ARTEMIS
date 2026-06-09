@@ -504,12 +504,15 @@ def get_structNL_prompt_simple(input_nl,ap_dict,dcmp=None,prev_outputs=None,k=10
     init_cmd_str = "You are an expert in Linear Temporal Logic and requirements engineering. Your job is to translate natural language requirements to structured natural language that capture the intents of the requirements.\n"
     #init_cmd_str += "The structured natural language has an underlying mapping to Linear Temporal Logic.\n"
 
-    
     nl_template_str = prefix_nl_template_str
-    #nl_template_str += "\nThe following list the possible options for decision1, decision2, and decision3:\n"
-    #nl_template_str += decision_options_str
-    #nl_template_str += "\nThe following python code snippet defines how the options you choose combine into the structured natural language.\n"
-    #nl_template_str += code_snippet
+
+    # Inject the JSON schema so Ollama copies enum values exactly
+    schema_json = json.dumps(StructuredNLTranslations.model_json_schema(), indent=2)
+    schema_str = (
+        "\nYou MUST respond with valid JSON that strictly conforms to this JSON schema "
+        "(pay special attention to enum values — copy them exactly as written):\n"
+        + schema_json
+    )
 
     input_str = "{\n"
     input_str += f"\"input_natural_language\":\"{input_nl}\",\n"
@@ -538,11 +541,10 @@ def get_structNL_prompt_simple(input_nl,ap_dict,dcmp=None,prev_outputs=None,k=10
         prev_output_str += "\nThe above are incorrect. Please produce translations to structured natural language that could capture the meaning of the input_natural_langauge."
         user_str_list = [prev_output_str] + user_str_list
 
-    #system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_format_str,structnl_example_str])
     if dcmp is None:
-        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_format_str])
+        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_format_str,schema_str])
     else:
-        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_dcmp_format_str])
+        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_dcmp_format_str,schema_str])
     user_prompt = "\n".join(user_str_list)
     return system_prompt, user_prompt
 
