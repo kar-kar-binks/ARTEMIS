@@ -3,6 +3,10 @@ import sys
 import json
 import pandas as pd
 
+# Set to True to always generate atomic propositions via Ollama (ignores Variables.xlsx).
+# Set to False to only generate when Variables.xlsx is not present.
+ALWAYS_GENERATE_VARIABLES = False
+
 os.environ["DATA_HOME_DIR"] = "./metadata"
 sys.path.insert(0, ".")
 

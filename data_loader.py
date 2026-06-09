@@ -5,6 +5,9 @@ import nl2structnl_PSP
 import nl2ltl
 import itertools
 import spot_utils
+import openai
+from pydantic import BaseModel
+from typing import List
 
 print(df_option_names)
 
@@ -159,19 +162,62 @@ def load_labels(data_home_dir,cur_dataset_name,row_idx,max_N_DURATION=None,cur_d
         assert False
     return label_output_list, label_ltl_list
 
+class _AP(BaseModel):
+    variable_name: str
+    description: str
+
+class _APList(BaseModel):
+    atomic_propositions: List[_AP]
+
+def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:32b"):
+    """Query Ollama to generate atomic propositions (variable name + description) for a dataset."""
+    cur_df_file = data_home_dir + cur_dataset_name + "/PlausibleSpecs.xlsx"
+    df = pd.read_excel(cur_df_file, engine='openpyxl')
+    nl_requirements = df["NL"].dropna().tolist()
+
+    _ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+    _ollama_client = openai.OpenAI(base_url=_ollama_base_url, api_key="ollama")
+
+    schema_json = json.dumps(_APList.model_json_schema(), indent=2)
+    system_prompt = (
+        "You are an expert in requirements engineering and formal specification. "
+        "Given a list of natural language requirements, identify all atomic boolean propositions "
+        "(system state variables) needed to express them formally. "
+        "For each proposition, provide a short snake_case variable name and a brief description. "
+        "Respond with valid JSON conforming to this schema:\n" + schema_json
+    )
+    user_prompt = (
+        "Generate atomic propositions for the following requirements:\n"
+        + json.dumps(nl_requirements, indent=2)
+    )
+
+    messages = [
+        {"role": "system", "content": [{"type": "text", "text": system_prompt}]},
+        {"role": "user", "content": [{"type": "text", "text": user_prompt}]},
+    ]
+    response = _ollama_client.chat.completions.create(
+        model=model,
+        messages=messages,
+        response_format={"type": "json_object"},
+    )
+    raw = response.choices[0].message.content
+    parsed = _APList(**json.loads(raw))
+    return {ap.variable_name: ap.description for ap in parsed.atomic_propositions}
+
 # Loads the atomic propositions glossary for a dataset.
-# If Variables.xlsx exists, calls get_ap_dict() to build {name: description} from its columns.
-# Otherwise, reads the ap_dict column directly from PlausibleSpecs.xlsx (per-row JSON).
-# The returned dict is passed to get_structNL_prompt_simple() as the prompt's AP glossary.
-def load_vars(data_home_dir,cur_dataset_name,row_idx=None):
+# If Variables.xlsx exists (and always_generate is False), builds {name: description} from it.
+# If always_generate is True, or Variables.xlsx is absent, queries Ollama to generate propositions.
+# Falls back to ap_dict column in PlausibleSpecs.xlsx if Ollama generation is not requested.
+def load_vars(data_home_dir, cur_dataset_name, row_idx=None, always_generate=False, model="qwen2.5:32b"):
     cur_var_file = data_home_dir + cur_dataset_name + "/Variables.xlsx"
-    if os.path.exists(cur_var_file):
+    if os.path.exists(cur_var_file) and not always_generate:
         var_df = pd.read_excel(cur_var_file, engine='openpyxl')
-        ap_dict = get_ap_dict(var_df)
-        return ap_dict
+        return get_ap_dict(var_df)
+    if always_generate or not os.path.exists(cur_var_file):
+        print(f"Generating atomic propositions via Ollama for {cur_dataset_name}...")
+        return generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model=model)
     cur_var_file = data_home_dir + cur_dataset_name + "/PlausibleSpecs.xlsx"
     if os.path.exists(cur_var_file):
         df = pd.read_excel(cur_var_file, engine='openpyxl')
-        ap_dict = json.loads(df.iloc[row_idx]["ap_dict"])
-        return ap_dict
+        return json.loads(df.iloc[row_idx]["ap_dict"])
     assert False, "cannot load ap_dict!"
