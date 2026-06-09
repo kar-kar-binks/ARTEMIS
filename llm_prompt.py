@@ -53,13 +53,29 @@ def query_openai(local_messages,schema,model="gpt-4o-mini"):
     )
     return response.choices[0].message.content
 
+def _resolve_schema_refs(schema):
+    """Inline all $defs/$ref entries so the schema is fully explicit with no references."""
+    defs = schema.get("$defs", {})
+    def resolve(obj):
+        if isinstance(obj, dict):
+            if "$ref" in obj:
+                ref_name = obj["$ref"].split("/")[-1]
+                return resolve(defs.get(ref_name, obj))
+            return {k: resolve(v) for k, v in obj.items() if k != "$defs"}
+        if isinstance(obj, list):
+            return [resolve(item) for item in obj]
+        return obj
+    return resolve(schema)
+
 # Sends a prompt to a locally-running Ollama model via its OpenAI-compatible endpoint.
 # Because Ollama does not support structured-output natively, the Pydantic JSON schema
 # is injected as plain text into the system message so the model copies enum values exactly.
+# $defs/$ref references are resolved to a flat schema before injection so the model sees
+# all required fields explicitly without needing to follow JSON Schema reference syntax.
 def query_ollama(local_messages, schema=None, model="llama3.2"):
     messages = format_localmessages_to_openai(local_messages)
     if schema is not None and hasattr(schema, "model_json_schema"):
-        schema_json = schema.model_json_schema()
+        schema_json = _resolve_schema_refs(schema.model_json_schema())
         # Inject schema into the system message so the model knows exact enum values
         schema_instruction = (
             f"\nYou MUST respond with valid JSON that strictly conforms to this JSON schema "
