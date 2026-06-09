@@ -505,6 +505,8 @@ def get_structNL_prompt_simple(input_nl,ap_dict,dcmp=None,prev_outputs=None,k=10
     #init_cmd_str += "The structured natural language has an underlying mapping to Linear Temporal Logic.\n"
 
     nl_template_str = prefix_nl_template_str
+    nl_template_str += "\nThe following lists the ONLY valid options for decision1, decision2, and decision3. You MUST copy one of these strings exactly — do not paraphrase or invent new values:\n"
+    nl_template_str += decision_options_str
 
     input_str = "{\n"
     input_str += f"\"input_natural_language\":\"{input_nl}\",\n"
