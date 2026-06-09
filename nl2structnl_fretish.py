@@ -84,6 +84,29 @@ class LTLTemplateResult(BaseModel):
 class LTLTemplateTranslations(BaseModel):
     translations: list[LTLTemplateResult]
 
+structnl_example_str = \
+"""
+Example of a valid output (your field names and decision values must match exactly):
+{
+  "translations": [
+    {
+      "explanation": "Upon the trigger condition, the system must immediately satisfy the target state.",
+      "decision1": "_ABSTRACT_VAR1_",
+      "bool_exp1": "",
+      "decision2": "upon bool_exp2, _ABSTRACT_VAR2_",
+      "bool_exp2": "trigger_condition",
+      "decision3": "immediately satisfy bool_exp3",
+      "bool_exp3": "target_state",
+      "bool_exp4": "",
+      "N_DURATION": null,
+      "decision1_substring": "",
+      "decision2_substring": "when the trigger condition occurs",
+      "decision3_substring": "immediately satisfy the target state"
+    }
+  ]
+}
+"""
+
 structnl_dcmp_format_str = \
 """
 Inputs consist of:
@@ -536,9 +559,9 @@ def get_structNL_prompt_simple(input_nl,ap_dict,dcmp=None,prev_outputs=None,k=10
         user_str_list = [prev_output_str] + user_str_list
 
     if dcmp is None:
-        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_format_str])
+        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_format_str,structnl_example_str])
     else:
-        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_dcmp_format_str])
+        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_dcmp_format_str,structnl_example_str])
     user_prompt = "\n".join(user_str_list)
     return system_prompt, user_prompt
 
