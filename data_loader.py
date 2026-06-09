@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 from nl2structnl import *
 import nl2structnl_fretish
@@ -169,7 +170,25 @@ class _AP(BaseModel):
 class _APList(BaseModel):
     atomic_propositions: List[_AP]
 
-def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:32b"):
+_AP_SNAKE_CASE_RE = re.compile(r'^[a-z][a-z0-9_]*$')
+
+def _check_ap_output(raw):
+    """Validate raw JSON from Ollama for AP generation. Returns error string or None."""
+    try:
+        parsed = _APList(**json.loads(raw))
+    except Exception as e:
+        return f"Invalid format: {e}"
+    if len(parsed.atomic_propositions) == 0:
+        return "No atomic propositions were generated. Please generate at least one."
+    bad = [ap.variable_name for ap in parsed.atomic_propositions
+           if not _AP_SNAKE_CASE_RE.match(ap.variable_name)]
+    if bad:
+        return (f"The following variable names are not valid snake_case identifiers: {bad}. "
+                f"Variable names must be lowercase, start with a letter, and contain only "
+                f"letters, digits, and underscores.")
+    return None
+
+def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:32b", max_retry=3):
     """Query Ollama to generate atomic propositions (variable name + description) for a dataset."""
     cur_df_file = data_home_dir + cur_dataset_name + "/PlausibleSpecs.xlsx"
     df = pd.read_excel(cur_df_file, engine='openpyxl')
@@ -178,13 +197,14 @@ def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:
     _ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
     _ollama_client = openai.OpenAI(base_url=_ollama_base_url, api_key="ollama")
 
-    schema_json = json.dumps(_APList.model_json_schema(), indent=2)
     system_prompt = (
         "You are an expert in requirements engineering and formal specification. "
         "Given a list of natural language requirements, identify all atomic boolean propositions "
         "(system state variables) needed to express them formally. "
-        "For each proposition, provide a short snake_case variable name and a brief description. "
-        "Respond with valid JSON conforming to this schema:\n" + schema_json
+        "For each proposition provide a short snake_case variable name (lowercase letters, digits, "
+        "and underscores only, must start with a letter) and a brief description. "
+        'Example output: {"atomic_propositions": [{"variable_name": "sensor_is_active", '
+        '"description": "True when the sensor is active"}]}'
     )
     user_prompt = (
         "Generate atomic propositions for the following requirements:\n"
@@ -195,12 +215,25 @@ def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:
         {"role": "system", "content": [{"type": "text", "text": system_prompt}]},
         {"role": "user", "content": [{"type": "text", "text": user_prompt}]},
     ]
-    response = _ollama_client.chat.completions.create(
-        model=model,
-        messages=messages,
-        response_format={"type": "json_object"},
-    )
-    raw = response.choices[0].message.content
+    raw = None
+    for trial in range(max_retry):
+        response = _ollama_client.chat.completions.create(
+            model=model,
+            messages=messages,
+            response_format={"type": "json_schema", "json_schema": {
+                "name": "output",
+                "strict": True,
+                "schema": _APList.model_json_schema(),
+            }},
+        )
+        raw = response.choices[0].message.content
+        error_msg = _check_ap_output(raw)
+        if error_msg is None:
+            break
+        print(f"AP generation error (trial {trial+1}): {error_msg}")
+        messages.append({"role": "assistant", "content": [{"type": "text", "text": raw}]})
+        messages.append({"role": "user", "content": [{"type": "text", "text": error_msg}]})
+
     parsed = _APList(**json.loads(raw))
     return {ap.variable_name: ap.description for ap in parsed.atomic_propositions}
 
