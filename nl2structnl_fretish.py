@@ -506,14 +506,6 @@ def get_structNL_prompt_simple(input_nl,ap_dict,dcmp=None,prev_outputs=None,k=10
 
     nl_template_str = prefix_nl_template_str
 
-    # Inject the JSON schema so Ollama copies enum values exactly
-    schema_json = json.dumps(StructuredNLTranslations.model_json_schema(), indent=2)
-    schema_str = (
-        "\nYou MUST respond with valid JSON that strictly conforms to this JSON schema "
-        "(pay special attention to enum values — copy them exactly as written):\n"
-        + schema_json
-    )
-
     input_str = "{\n"
     input_str += f"\"input_natural_language\":\"{input_nl}\",\n"
     # ap_dict is loaded by data_loader.load_vars() from Variables.xlsx or PlausibleSpecs.xlsx
@@ -542,9 +534,9 @@ def get_structNL_prompt_simple(input_nl,ap_dict,dcmp=None,prev_outputs=None,k=10
         user_str_list = [prev_output_str] + user_str_list
 
     if dcmp is None:
-        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_format_str,schema_str])
+        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_format_str])
     else:
-        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_dcmp_format_str,schema_str])
+        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_dcmp_format_str])
     user_prompt = "\n".join(user_str_list)
     return system_prompt, user_prompt
 
