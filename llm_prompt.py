@@ -68,26 +68,23 @@ def _resolve_schema_refs(schema):
     return resolve(schema)
 
 # Sends a prompt to a locally-running Ollama model via its OpenAI-compatible endpoint.
-# Because Ollama does not support structured-output natively, the Pydantic JSON schema
-# is injected as plain text into the system message so the model copies enum values exactly.
-# $defs/$ref references are resolved to a flat schema before injection so the model sees
-# all required fields explicitly without needing to follow JSON Schema reference syntax.
+# Uses Ollama's native structured output (json_schema response_format) which applies
+# constrained grammar decoding to guarantee the output matches the schema exactly.
+# Falls back to json_object + text injection if the model/version doesn't support it.
 def query_ollama(local_messages, schema=None, model="llama3.2"):
     messages = format_localmessages_to_openai(local_messages)
     if schema is not None and hasattr(schema, "model_json_schema"):
         schema_json = _resolve_schema_refs(schema.model_json_schema())
-        # Inject schema into the system message so the model knows exact enum values
-        schema_instruction = (
-            f"\nYou MUST respond with valid JSON that strictly conforms to this JSON schema "
-            f"(pay special attention to enum values — copy them exactly as written):\n"
-            f"{json.dumps(schema_json, indent=2)}"
-        )
-        # Prepend to existing system message or add a new one
-        if messages and messages[0]["role"] == "system":
-            messages[0]["content"][0]["text"] += schema_instruction
-        else:
-            messages.insert(0, {"role": "system", "content": [{"type": "text", "text": schema_instruction}]})
-    response_format = {"type": "json_object"}
+        response_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "output",
+                "strict": True,
+                "schema": schema_json,
+            },
+        }
+    else:
+        response_format = {"type": "json_object"}
     response = _ollama_client.chat.completions.create(
         model=model,
         messages=messages,
