@@ -1,4 +1,9 @@
-import spot
+# spot is an optional dependency (not available on all platforms, e.g. macOS wheels).
+# Only the functions in this file that build/manipulate automata require it.
+try:
+    import spot
+except ImportError:
+    spot = None
 
 def get_dest_list(aut,dst):
     if not aut.is_univ_dest(dst):
