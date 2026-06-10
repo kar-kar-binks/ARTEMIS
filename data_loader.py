@@ -266,23 +266,45 @@ def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:
         messages.append({"role": "assistant", "content": [{"type": "text", "text": raw}]})
         messages.append({"role": "user", "content": [{"type": "text", "text": error_msg}]})
 
-    parsed = _APList(**json.loads(raw))
-    return {ap.variable_name: ap.description for ap in parsed.atomic_propositions}
+    try:
+        parsed = _APList(**json.loads(raw))
+        ap_dict = {ap.variable_name: ap.description for ap in parsed.atomic_propositions}
+    except Exception:
+        ap_dict = None
+    return ap_dict, raw
 
 # Loads the atomic propositions glossary for a dataset.
-# If Variables.xlsx exists (and always_generate is False), builds {name: description} from it.
-# If always_generate is True, or Variables.xlsx is absent, queries Ollama to generate propositions.
-# Falls back to ap_dict column in PlausibleSpecs.xlsx if Ollama generation is not requested.
+# Returns (ap_dict, ollama_ap_output):
+#   ap_dict is the {name: description} glossary actually used for formalization.
+#   ollama_ap_output is the raw Ollama response from generate_ap_dict_via_ollama,
+#   or None if Ollama wasn't queried.
+#
+# If Variables.xlsx exists, ap_dict is built from it (used for formalization even
+# if always_generate is True - in that case Ollama is also queried so its raw
+# output can be inspected/compared, but its result is NOT used for formalization).
+# If Variables.xlsx is absent, queries Ollama to generate propositions and uses
+# that result for formalization.
+# Falls back to the ap_dict column in PlausibleSpecs.xlsx if Ollama generation is
+# not requested and Variables.xlsx is absent.
 def load_vars(data_home_dir, cur_dataset_name, row_idx=None, always_generate=False, model="qwen2.5:32b"):
     cur_var_file = data_home_dir + cur_dataset_name + "/Variables.xlsx"
-    if os.path.exists(cur_var_file) and not always_generate:
-        var_df = pd.read_excel(cur_var_file, engine='openpyxl')
-        return get_ap_dict(var_df)
-    if always_generate or not os.path.exists(cur_var_file):
+    ollama_ap_dict = None
+    ollama_ap_output = None
+    if always_generate:
         print(f"Generating atomic propositions via Ollama for {cur_dataset_name}...")
-        return generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model=model)
-    cur_var_file = data_home_dir + cur_dataset_name + "/PlausibleSpecs.xlsx"
+        ollama_ap_dict, ollama_ap_output = generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model=model)
+
     if os.path.exists(cur_var_file):
-        df = pd.read_excel(cur_var_file, engine='openpyxl')
-        return json.loads(df.iloc[row_idx]["ap_dict"])
+        var_df = pd.read_excel(cur_var_file, engine='openpyxl')
+        return get_ap_dict(var_df), ollama_ap_output
+
+    if always_generate:
+        if ollama_ap_dict is not None:
+            return ollama_ap_dict, ollama_ap_output
+        assert False, "Ollama atomic proposition generation failed and no Variables.xlsx present!"
+
+    cur_df_file = data_home_dir + cur_dataset_name + "/PlausibleSpecs.xlsx"
+    if os.path.exists(cur_df_file):
+        df = pd.read_excel(cur_df_file, engine='openpyxl')
+        return json.loads(df.iloc[row_idx]["ap_dict"]), ollama_ap_output
     assert False, "cannot load ap_dict!"
