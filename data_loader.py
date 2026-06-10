@@ -1,6 +1,5 @@
 import re
 import pandas as pd
-import llm_prompt
 from nl2structnl import *
 import nl2structnl_fretish
 import nl2structnl_PSP
@@ -233,7 +232,9 @@ def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:
         "For a variable that represents a finite-state-machine being in a particular mode, "
         "use the pattern \"state_is_<MODE_NAME>\" with the mode name in upper case "
         "(e.g. \"state_is_NOMINAL\", \"state_is_FAULT\"). "
-        'Example output: {"atomic_propositions": [{"variable_name": "sensor_is_active", '
+        "Respond with a single JSON object only, with no extra text, commentary, or markdown "
+        "code fences, in exactly this format:\n"
+        '{"atomic_propositions": [{"variable_name": "sensor_is_active", '
         '"description": "True when the sensor is active"}, {"variable_name": "state_is_NOMINAL", '
         '"description": "True when the system is in the NOMINAL state"}]}'
     )
@@ -251,11 +252,7 @@ def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:
         response = _ollama_client.chat.completions.create(
             model=model,
             messages=messages,
-            response_format={"type": "json_schema", "json_schema": {
-                "name": "output",
-                "strict": True,
-                "schema": llm_prompt._resolve_schema_refs(_APList.model_json_schema()),
-            }},
+            response_format={"type": "json_object"},
         )
         raw = response.choices[0].message.content
         if not raw:

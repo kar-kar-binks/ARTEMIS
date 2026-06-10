@@ -54,18 +54,14 @@ def query_openai(local_messages,schema,model="gpt-4o-mini"):
     return response.choices[0].message.content
 
 def _resolve_schema_refs(schema):
-    """Inline all $defs/$ref entries and add additionalProperties:false to every
-    object, since strict json_schema mode (used by Ollama/OpenAI) requires both."""
+    """Inline all $defs/$ref entries so the schema is fully explicit with no references."""
     defs = schema.get("$defs", {})
     def resolve(obj):
         if isinstance(obj, dict):
             if "$ref" in obj:
                 ref_name = obj["$ref"].split("/")[-1]
                 return resolve(defs.get(ref_name, obj))
-            resolved = {k: resolve(v) for k, v in obj.items() if k != "$defs"}
-            if resolved.get("type") == "object" and "additionalProperties" not in resolved:
-                resolved["additionalProperties"] = False
-            return resolved
+            return {k: resolve(v) for k, v in obj.items() if k != "$defs"}
         if isinstance(obj, list):
             return [resolve(item) for item in obj]
         return obj
