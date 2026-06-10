@@ -71,7 +71,7 @@ def _resolve_schema_refs(schema):
 # Uses Ollama's native structured output (json_schema response_format) which applies
 # constrained grammar decoding to guarantee the output matches the schema exactly.
 # Falls back to json_object + text injection if the model/version doesn't support it.
-def query_ollama(local_messages, schema=None, model="llama3.2"):
+def query_ollama(local_messages, schema=None, model="llama3.2", max_empty_retry=2):
     messages = format_localmessages_to_openai(local_messages)
     if schema is not None and hasattr(schema, "model_json_schema"):
         schema_json = _resolve_schema_refs(schema.model_json_schema())
@@ -85,19 +85,34 @@ def query_ollama(local_messages, schema=None, model="llama3.2"):
         }
     else:
         response_format = {"type": "json_object"}
-    response = _ollama_client.chat.completions.create(
-        model=model,
-        messages=messages,
-        response_format=response_format,
-    )
-    return response.choices[0].message.content
+    raw = ""
+    for attempt in range(max_empty_retry + 1):
+        response = _ollama_client.chat.completions.create(
+            model=model,
+            messages=messages,
+            response_format=response_format,
+        )
+        raw = response.choices[0].message.content
+        if raw:
+            break
+        print(f"query_ollama: empty response from Ollama (attempt {attempt+1}/{max_empty_retry+1}). "
+              f"finish_reason={response.choices[0].finish_reason!r}")
+    return raw
 
-def get_formalizations_loop(input_nl,ap_dict,translation_func,num_trial=5,model="gpt-4o-mini",prev_outputs=None,**kwargs):
+def get_formalizations_loop(input_nl,ap_dict,translation_func,num_trial=5,model="gpt-4o-mini",prev_outputs=None,max_empty_attempts=5,**kwargs):
     if prev_outputs is None:
         prev_outputs = []
     cur_set = set([output["output_LTL"] for output in prev_outputs])
+    empty_attempts = 0
     while len(prev_outputs) < num_trial:
         cur_output = translation_func(input_nl,ap_dict,model=model,max_retry=3,prev_outputs=prev_outputs,k=num_trial,**kwargs)
+        if len(cur_output) == 0:
+            empty_attempts += 1
+            if empty_attempts >= max_empty_attempts:
+                print(f"get_formalizations_loop: giving up after {empty_attempts} attempts with no valid output.")
+                break
+            continue
+        empty_attempts = 0
         new_set = set([output["output_LTL"] for output in cur_output])
         #if len(cur_set) > 0 and len(new_set - cur_set) == 0:
         #    break
