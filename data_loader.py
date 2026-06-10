@@ -170,7 +170,23 @@ class _AP(BaseModel):
 class _APList(BaseModel):
     atomic_propositions: List[_AP]
 
-_AP_SNAKE_CASE_RE = re.compile(r'^[a-z][a-z0-9_]*$')
+# Identifiers must follow the FRET grammar's ID rule: start with a letter,
+# followed by letters, digits, or underscores (e.g. "limits", "state_is_NOMINAL").
+_AP_ID_RE = re.compile(r'^[A-Za-z][A-Za-z0-9_]*$')
+
+# Words reserved by the FRET requirements grammar (matched case-insensitively,
+# since the grammar's keyword fragments are case-insensitive) and therefore
+# unusable as variable names.
+_FRET_RESERVED_WORDS = {
+    "after", "always", "and", "at", "before", "during", "eventually", "except",
+    "false", "finally", "first", "for", "hour", "hours", "if", "immediately",
+    "in", "initially", "is", "last", "microsecond", "microseconds",
+    "millisecond", "milliseconds", "minute", "minutes", "mod", "mode",
+    "never", "next", "not", "occurrence", "of", "only", "or", "previous",
+    "probability", "same", "satisfy", "second", "seconds", "shall", "the",
+    "then", "tick", "ticks", "timepoint", "true", "unless", "until", "upon",
+    "what", "when", "whenever", "where", "while", "with", "within", "xor",
+}
 
 def _check_ap_output(raw):
     """Validate raw JSON from Ollama for AP generation. Returns error string or None."""
@@ -181,11 +197,17 @@ def _check_ap_output(raw):
     if len(parsed.atomic_propositions) == 0:
         return "No atomic propositions were generated. Please generate at least one."
     bad = [ap.variable_name for ap in parsed.atomic_propositions
-           if not _AP_SNAKE_CASE_RE.match(ap.variable_name)]
+           if not _AP_ID_RE.match(ap.variable_name)]
     if bad:
-        return (f"The following variable names are not valid snake_case identifiers: {bad}. "
-                f"Variable names must be lowercase, start with a letter, and contain only "
-                f"letters, digits, and underscores.")
+        return (f"The following variable names are not valid identifiers: {bad}. "
+                f"Variable names must start with a letter and contain only letters, "
+                f"digits, and underscores (e.g. 'limits', 'state_is_NOMINAL').")
+    reserved = [ap.variable_name for ap in parsed.atomic_propositions
+                if ap.variable_name.lower() in _FRET_RESERVED_WORDS]
+    if reserved:
+        return (f"The following variable names are reserved words in the FRET "
+                f"requirements grammar and cannot be used: {reserved}. "
+                f"Please choose different variable names.")
     return None
 
 def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:32b", max_retry=3):
@@ -200,11 +222,19 @@ def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:
     system_prompt = (
         "You are an expert in requirements engineering and formal specification. "
         "Given a list of natural language requirements, identify all atomic boolean propositions "
-        "(system state variables) needed to express them formally. "
-        "For each proposition provide a short snake_case variable name (lowercase letters, digits, "
-        "and underscores only, must start with a letter) and a brief description. "
+        "(system state variables) needed to express them formally as FRETish requirements. "
+        "For each proposition provide a variable name and a brief description. "
+        "Variable names must be valid identifiers in the FRET requirements grammar: they must "
+        "start with a letter and contain only letters, digits, and underscores (no spaces, "
+        "hyphens, or other special characters), and must not be one of FRET's reserved words "
+        "(e.g. shall, when, if, mode, and, or, not, true, false, until, within). "
+        "Use lowercase snake_case names for ordinary variables (e.g. \"sensor_is_active\"). "
+        "For a variable that represents a finite-state-machine being in a particular mode, "
+        "use the pattern \"state_is_<MODE_NAME>\" with the mode name in upper case "
+        "(e.g. \"state_is_NOMINAL\", \"state_is_FAULT\"). "
         'Example output: {"atomic_propositions": [{"variable_name": "sensor_is_active", '
-        '"description": "True when the sensor is active"}]}'
+        '"description": "True when the sensor is active"}, {"variable_name": "state_is_NOMINAL", '
+        '"description": "True when the system is in the NOMINAL state"}]}'
     )
     user_prompt = (
         "Generate atomic propositions for the following requirements:\n"
