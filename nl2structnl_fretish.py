@@ -612,46 +612,6 @@ def get_ltl_from_options(option_dict):
                     res = res.replace("N_DURATION",str(option_dict[decision][k]))   
     return res
 
-def get_dcmp_map_from_row(df_row):
-    col_name_map = \
-    {
-        "decision3_substring":"timing substring",
-        "decision2_substring":"scope 1 substring",
-        "decision1_substring":"scope 2 substring",
-    }
-    substring_order = ['decision3_substring', 'decision2_substring', 'decision1_substring']
-    group_list = []
-    visited_unassigned = set()
-    for substring_label in substring_order:
-        cur_substring = df_row[col_name_map[substring_label]]
-        if pd.isna(cur_substring):
-            visited_unassigned.add(substring_label)
-        else:
-            new_group = set([substring_label])
-            new_group.update(visited_unassigned)
-            group_list.append(new_group)
-            visited_unassigned = set()
-    if len(visited_unassigned) > 0:
-        group_list[-1].update(visited_unassigned)
-
-    dcmp = {}
-    for group in group_list:
-        found_not_nan = False
-        for substring_label in group:
-            cur_substring = df_row[col_name_map[substring_label]]
-            if not pd.isna(cur_substring):
-                found_not_nan = True
-                break
-        assert found_not_nan
-        for substring_label in group:
-            dcmp[substring_label] = cur_substring
-
-    dcmp_list = []
-    for decision in decision_order:
-        if dcmp[decision+"_substring"] not in dcmp_list:
-            dcmp_list.append(dcmp[decision+"_substring"])
-    return dcmp, dcmp_list
-
 def get_all_possible_decision_options_for_ex(output,MAX_DURATION=5):
     key_list = ["bool_exp1","bool_exp2","bool_exp3","bool_exp4"]
     all_bools = []

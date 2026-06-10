@@ -1,1 +1,0 @@
-[{"output_LTL": "G ((((currentADCSMode_equalTo_NMC))) -> (((control_error_greaterThanOrEqual_10))))"}]

@@ -1,1 +1,0 @@
-[{"output_LTL": "G((state_is_TRANSITION&supported&good) -> (G(state_is_NOMINAL)|(state_is_TRANSITION&!(supported&good))))"}]

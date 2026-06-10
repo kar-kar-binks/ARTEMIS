@@ -1,1 +1,0 @@
-[{"output_LTL": "F(explain)"}, {"output_LTL": "G(F(explain))"}, {"output_LTL": "G((!missioncomplete & Xmissioncomplete) -> XFexplain)"}, {"output_LTL": "G(F(explain))"}, {"output_LTL": "G(F(explain))"}, {"output_LTL": "F(explain)"}, {"output_LTL": "G(explain)"}, {"output_LTL": "G(F(explain))"}, {"output_LTL": "G(explain)"}, {"output_LTL": "G(missioncomplete -> Xexplain)"}]

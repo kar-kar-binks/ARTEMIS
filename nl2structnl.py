@@ -10,57 +10,14 @@ from tqdm import tqdm
 import itertools
 import os
 
-#_MODE_ = "fretish"
-#_MODE_ = "SPS"
-
 # STRUCTNL_MODE selects which format-specific module to use at runtime.
-# Set via os.environ["STRUCTNL_MODE"] = "fretish" (or "PSP") in run_llm.ipynb before importing.
+# Set via os.environ["STRUCTNL_MODE"] = "fretish" in run_llm.ipynb before importing.
 # "fretish" loads nl2structnl_fretish (FRETish output with 12-field JSON schema).
 # All prompt templates, schema classes, and get_ltl_from_output() come from the selected module.
 if os.getenv("STRUCTNL_MODE") == "fretish":
     from nl2structnl_fretish import *
-elif os.getenv("STRUCTNL_MODE") == "SPS":
-    from nl2structnl_sps import *
-elif os.getenv("STRUCTNL_MODE") == "PSP":
-    from nl2structnl_PSP import *
 else:
     assert False
-
-def get_output_options(output):
-    out_dict = {}
-    for decision in decision_to_item_list:
-        out_dict[decision] = dict((k,output[k]) for k in decision_to_item_list[decision])
-        out_dict[decision]["option"] = output[decision]
-    return out_dict
-
-def group_output_options_by_decomposition_list(output_list,dcmp_list):
-    selected_options_dict = dict((k,[]) for k in dcmp_list)
-    for output in output_list:
-        for k in dcmp_list:
-            selected_options_dict[k].append({})
-        for decision in decision_to_item_list:
-            cur_substring = output[decision+"_substring"]
-            selected_options_dict[cur_substring][-1][decision] = dict((k,output[k]) for k in decision_to_item_list[decision])
-            selected_options_dict[cur_substring][-1][decision]["option"] = output[decision]
-    return selected_options_dict
-
-def is_equal_intersection_option(option_dict1,option_dict2):
-    all_decisions = set(list(option_dict1.keys())).intersection(list(option_dict2.keys()))
-    for decision in all_decisions:
-        if option_dict1[decision]["option"] != option_dict2[decision]["option"]:
-            return False
-        for k in decision_to_item_list[decision]:
-            if option_dict1[decision][k] != option_dict2[decision][k]:
-                return False
-    return True
-
-def get_dcmp_list_from_dcmp_structure(dcmp_structure):
-    dcmp_list = []
-    for decision in [entry+"_substring" for entry in decision_order]:
-        for cur_substring in dcmp_structure[decision]:
-            if cur_substring != "" and cur_substring not in dcmp_list:
-                dcmp_list.append(cur_substring)
-    return dcmp_list
 
 def get_extrapolate_outputs(prev_outputs,MAX_DURATION=5,filter_mode="any contain",
                             get_ltl_from_output_func=get_ltl_from_output,

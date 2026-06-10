@@ -1,1 +1,0 @@
-[{"output_LTL": "G((state_is_TRANSITION&standby) -> X(state_is_STANDBY)) & ((!(state_is_TRANSITION)&standby) -> (state_is_STANDBY))"}]

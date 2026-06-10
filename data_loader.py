@@ -2,8 +2,6 @@ import re
 import pandas as pd
 from nl2structnl import *
 import nl2structnl_fretish
-import nl2structnl_PSP
-import nl2ltl
 import itertools
 import spot_utils
 import openai
@@ -69,9 +67,6 @@ def get_all_outputs_for_df_row(df_row,max_N_DURATION=5,group_by_template=False,s
     if structnl == "fretish":
         decision_to_item_list = nl2structnl_fretish.decision_to_item_list
         df_option_names = nl2structnl_fretish.df_option_names
-    elif structnl == "PSP":
-        decision_to_item_list = nl2structnl_PSP.decision_to_item_list
-        df_option_names = nl2structnl_PSP.df_option_names
     else:
         assert False
     #global decision_to_item_list
@@ -117,22 +112,13 @@ def load_outputs(result_dir,cur_dataset_name,row_idx,model,num_trial,cur_method,
     if structnl == "fretish":
         get_ltl_from_output = nl2structnl_fretish.get_ltl_from_output
         get_all_possible_decision_options_for_ex = nl2structnl_fretish.get_all_possible_decision_options_for_ex
-    elif structnl == "PSP":
-        get_ltl_from_output = nl2structnl_PSP.get_ltl_from_output
-        get_all_possible_decision_options_for_ex = nl2structnl_PSP.get_all_possible_decision_options_for_ex
     else:
         assert False
-    
-    if cur_method in ["nl2ltltemplate","nl2ltl","nl2spec","NL2TL","deepstl","synthtl","NL2TL-FT"]:
-        get_ltl_from_output_func = lambda x : x["output_LTL"]
-        get_all_possible_options_func = nl2ltl.get_all_possible_ltltemplates_for_ex
-    elif cur_method in ["nl2structnl-reflect","nl2structnl","nl2structnl_dcmp"]:
-        get_ltl_from_output_func = get_ltl_from_output
-        get_all_possible_options_func = get_all_possible_decision_options_for_ex
-    else:
-        assert False
+
+    get_ltl_from_output_func = get_ltl_from_output
+    get_all_possible_options_func = get_all_possible_decision_options_for_ex
     cur_outputs= [output for output in cur_outputs if spot_utils.check_ltl_formula(get_ltl_from_output_func(output))]
-    
+
     if cur_mode == "extra":
         cur_outputs = get_extrapolate_outputs(cur_outputs,
                                                              MAX_DURATION=max_N_DURATION,
@@ -142,12 +128,7 @@ def load_outputs(result_dir,cur_dataset_name,row_idx,model,num_trial,cur_method,
                                                              get_all_possible_options_func=get_all_possible_options_func,
                                                              #mc_mode="nusmv"
                                                             )
-    if cur_method in ["nl2structnl-reflect","nl2structnl","nl2structnl_dcmp"]:
-        output_ltl_list = [get_ltl_from_output(entry) for entry in cur_outputs]
-    elif cur_method in ["nl2ltltemplate","nl2ltl","nl2spec","NL2TL","deepstl","synthtl","NL2TL-FT"]:
-        output_ltl_list = [spot_utils.filter_ltl_formula(entry["output_LTL"]) for entry in cur_outputs]
-    else:
-        assert False
+    output_ltl_list = [get_ltl_from_output(entry) for entry in cur_outputs]
     return cur_outputs, output_ltl_list
 
 def load_labels(data_home_dir,cur_dataset_name,row_idx,max_N_DURATION=None,cur_df_file=None,structnl="fretish"):
@@ -157,8 +138,6 @@ def load_labels(data_home_dir,cur_dataset_name,row_idx,max_N_DURATION=None,cur_d
     label_output_list = get_all_outputs_for_df_row(df.iloc[row_idx],max_N_DURATION=max_N_DURATION,structnl=structnl)
     if structnl == "fretish":
         label_ltl_list = [nl2structnl_fretish.get_ltl_from_output(output) for output in label_output_list]
-    elif structnl == "PSP":
-        label_ltl_list = [nl2structnl_PSP.get_ltl_from_output(output) for output in label_output_list]
     else:
         assert False
     return label_output_list, label_ltl_list

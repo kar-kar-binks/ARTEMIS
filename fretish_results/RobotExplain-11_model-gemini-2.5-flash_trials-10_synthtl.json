@@ -1,1 +1,0 @@
-[{"output_LTL": "(((G (F (missioncomplete)))) && ((G (F (explain)))))"}, {"output_LTL": "G (F (explain))"}, {"output_LTL": "G (F (explain))"}, {"output_LTL": "G (F (explain))"}, {"output_LTL": "G (F (explain))"}, {"output_LTL": "G (F (explain))"}, {"output_LTL": "G (F (explain))"}, {"output_LTL": "G (true)"}, {"output_LTL": "G (F (explain))"}, {"output_LTL": "G (F (explain))"}]
