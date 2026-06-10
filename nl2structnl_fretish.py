@@ -107,6 +107,66 @@ Example of a valid output (your field names and decision values must match exact
 }
 """
 
+structnl_schema_str = \
+"""
+Output schema (StructuredNLTranslations):
+- translations: a list of objects, each with exactly the following fields:
+
+  - explanation (string): explanation of how this structured NL property captures the input_natural_language.
+
+  - decision1 (string, must be exactly one of the following options):
+      "while bool_exp1, _ABSTRACT_VAR1_"
+      "only while bool_exp1, _ABSTRACT_VAR1_"
+      "before bool_exp1, _ABSTRACT_VAR1_"
+      "only before bool_exp1, _ABSTRACT_VAR1_"
+      "after bool_exp1, _ABSTRACT_VAR1_"
+      "only after bool_exp1, _ABSTRACT_VAR1_"
+      "whenever bool_exp1, _ABSTRACT_VAR1_"
+      "upon bool_exp1, _ABSTRACT_VAR1_"
+      "_ABSTRACT_VAR1_"
+
+  - bool_exp1 (string): the boolean expression to substitute for bool_exp1 in decision1.
+      Use "" (empty string) if decision1 is "_ABSTRACT_VAR1_".
+
+  - decision2 (string, must be exactly one of the following options):
+      "whenever bool_exp2, _ABSTRACT_VAR2_"
+      "upon bool_exp2, _ABSTRACT_VAR2_"
+      "_ABSTRACT_VAR2_"
+
+  - bool_exp2 (string): the boolean expression to substitute for bool_exp2 in decision2.
+      Use "" (empty string) if decision2 is "_ABSTRACT_VAR2_".
+
+  - decision3 (string, must be exactly one of the following options):
+      "immediately satisfy bool_exp3"
+      "within N_DURATION ticks satisfy bool_exp3"
+      "after N_DURATION ticks satisfy bool_exp3"
+      "until bool_exp4, satisfy bool_exp3"
+      "always satisfy bool_exp3"
+      "never satisfy bool_exp3"
+      "at the next timepoint satisfy bool_exp3"
+      "eventually satisfy bool_exp3"
+      "for N_DURATION ticks satisfy bool_exp3"
+      "before bool_exp4, satisfy bool_exp3"
+
+  - bool_exp3 (string): the boolean expression to substitute for bool_exp3 in decision3.
+
+  - bool_exp4 (string): the boolean expression to substitute for bool_exp4 in decision3.
+      Use "" (empty string) if decision3 does not contain the bool_exp4 placeholder.
+
+  - N_DURATION (integer or null): the number of ticks to substitute for N_DURATION in decision3.
+      Use null if decision3 does not contain the N_DURATION placeholder.
+
+  - decision1_substring (string): the substring of input_natural_language that corresponds to decision1.
+      Use "" (empty string) if decision1 is "_ABSTRACT_VAR1_".
+
+  - decision2_substring (string): the substring of input_natural_language that corresponds to decision2.
+      Use "" (empty string) if decision2 is "_ABSTRACT_VAR2_".
+
+  - decision3_substring (string): the substring of input_natural_language that corresponds to decision3.
+
+All twelve fields above are required for every entry in translations.
+"""
+
 structnl_dcmp_format_str = \
 """
 Inputs consist of:
@@ -559,9 +619,9 @@ def get_structNL_prompt_simple(input_nl,ap_dict,dcmp=None,prev_outputs=None,k=10
         user_str_list = [prev_output_str] + user_str_list
 
     if dcmp is None:
-        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_format_str,structnl_example_str])
+        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_format_str,structnl_example_str,structnl_schema_str])
     else:
-        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_dcmp_format_str,structnl_example_str])
+        system_prompt = "\n".join([init_cmd_str,nl_template_str,structnl_dcmp_format_str,structnl_example_str,structnl_schema_str])
     user_prompt = "\n".join(user_str_list)
     return system_prompt, user_prompt
 
