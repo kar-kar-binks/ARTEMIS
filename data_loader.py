@@ -232,10 +232,19 @@ def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:
         "For a variable that represents a finite-state-machine being in a particular mode, "
         "use the pattern \"state_is_<MODE_NAME>\" with the mode name in upper case "
         "(e.g. \"state_is_NOMINAL\", \"state_is_FAULT\"). "
+        "IMPORTANT: requirements often give the exact variable name to use in parentheses, "
+        "e.g. \"the autopilot is requesting support (request)\" or \"limits are not exceeded "
+        "(not limits)\". When a requirement contains such a hint, you MUST use that hint "
+        "(stripped of words like \"not\"/\"is\"/\"are\", lowercased) as the variable_name "
+        "verbatim, instead of inventing a longer descriptive name. Only invent a new "
+        "snake_case name for concepts that have no such hint. "
+        "Generate one entry per distinct concept; do not generate duplicate or near-duplicate "
+        "propositions for the same concept. "
         "Respond with a single JSON object only, with no extra text, commentary, or markdown "
         "code fences, in exactly this format:\n"
-        '{"atomic_propositions": [{"variable_name": "sensor_is_active", '
-        '"description": "True when the sensor is active"}, {"variable_name": "state_is_NOMINAL", '
+        '{"atomic_propositions": [{"variable_name": "request", '
+        '"description": "True when the autopilot is requesting support"}, '
+        '{"variable_name": "state_is_NOMINAL", '
         '"description": "True when the system is in the NOMINAL state"}]}'
     )
     user_prompt = (
@@ -279,32 +288,29 @@ def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:
 #   ollama_ap_output is the raw Ollama response from generate_ap_dict_via_ollama,
 #   or None if Ollama wasn't queried.
 #
-# If Variables.xlsx exists, ap_dict is built from it (used for formalization even
-# if always_generate is True - in that case Ollama is also queried so its raw
-# output can be inspected/compared, but its result is NOT used for formalization).
-# If Variables.xlsx is absent, queries Ollama to generate propositions and uses
-# that result for formalization.
+# If always_generate is True (or Variables.xlsx is absent), queries Ollama to
+# generate propositions and uses that result for formalization.
+# Otherwise, ap_dict is built from Variables.xlsx.
 # Falls back to the ap_dict column in PlausibleSpecs.xlsx if Ollama generation is
 # not requested and Variables.xlsx is absent.
 def load_vars(data_home_dir, cur_dataset_name, row_idx=None, always_generate=False, model="qwen2.5:32b"):
     cur_var_file = data_home_dir + cur_dataset_name + "/Variables.xlsx"
-    ollama_ap_dict = None
-    ollama_ap_output = None
-    if always_generate:
+    if always_generate or not os.path.exists(cur_var_file):
         print(f"Generating atomic propositions via Ollama for {cur_dataset_name}...")
         ollama_ap_dict, ollama_ap_output = generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model=model)
+        if ollama_ap_dict is not None:
+            return ollama_ap_dict, ollama_ap_output
+        if os.path.exists(cur_var_file):
+            var_df = pd.read_excel(cur_var_file, engine='openpyxl')
+            return get_ap_dict(var_df), ollama_ap_output
+        assert False, "Ollama atomic proposition generation failed and no Variables.xlsx present!"
 
     if os.path.exists(cur_var_file):
         var_df = pd.read_excel(cur_var_file, engine='openpyxl')
-        return get_ap_dict(var_df), ollama_ap_output
-
-    if always_generate:
-        if ollama_ap_dict is not None:
-            return ollama_ap_dict, ollama_ap_output
-        assert False, "Ollama atomic proposition generation failed and no Variables.xlsx present!"
+        return get_ap_dict(var_df), None
 
     cur_df_file = data_home_dir + cur_dataset_name + "/PlausibleSpecs.xlsx"
     if os.path.exists(cur_df_file):
         df = pd.read_excel(cur_df_file, engine='openpyxl')
-        return json.loads(df.iloc[row_idx]["ap_dict"]), ollama_ap_output
+        return json.loads(df.iloc[row_idx]["ap_dict"]), None
     assert False, "cannot load ap_dict!"
