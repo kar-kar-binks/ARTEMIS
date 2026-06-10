@@ -1,5 +1,6 @@
 import re
 import pandas as pd
+import llm_prompt
 from nl2structnl import *
 import nl2structnl_fretish
 import nl2structnl_PSP
@@ -253,7 +254,7 @@ def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:
             response_format={"type": "json_schema", "json_schema": {
                 "name": "output",
                 "strict": True,
-                "schema": _APList.model_json_schema(),
+                "schema": llm_prompt._resolve_schema_refs(_APList.model_json_schema()),
             }},
         )
         raw = response.choices[0].message.content
