@@ -258,6 +258,10 @@ def generate_ap_dict_via_ollama(data_home_dir, cur_dataset_name, model="qwen2.5:
             }},
         )
         raw = response.choices[0].message.content
+        if not raw:
+            print(f"AP generation: empty response from Ollama (trial {trial+1}). "
+                  f"finish_reason={response.choices[0].finish_reason!r}, "
+                  f"message={response.choices[0].message!r}")
         error_msg = _check_ap_output(raw)
         if error_msg is None:
             break
