@@ -8,7 +8,5 @@
   "scripts": {
     "start": "node run_llm.js"
   },
-  "dependencies": {
-    "openai": "^4.0.0"
-  }
+  "dependencies": {}
 }

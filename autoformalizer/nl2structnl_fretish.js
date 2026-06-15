@@ -127,6 +127,13 @@ export const prefixNlTemplateStr = `
 To produce the structured natural language property, you compose it from a set of templates.
 If the chosen option contains boolean expression placeholders (i.e., bool_exp1, bool_exp2, bool_exp3, bool_exp4), you need to produce boolean expressions that will replace the placeholders.
 Boolean expressions can only contain boolean operators (e.g., !, &, |, ->, <->) and atomic propositions. STRICTLY FORBIDDEN in bool_exp fields: temporal/LTL operators (G, F, X, U, R, W, M), numerical comparisons, and function calls. Do NOT use X (next), F (eventually), G (always), or U (until) inside any bool_exp field — those operators are inserted automatically by the template. A bool_exp must be a pure propositional logic formula over the atomic propositions only.
+
+STATE-TRANSITION REQUIREMENTS: When a requirement says "shall change from STATE_A to STATE_B when CONDITION":
+- The trigger (bool_exp2) MUST include the source state: e.g. "state_is_STATE_A & condition"
+- The response (bool_exp3) should be ONLY the target state: e.g. "state_is_STATE_B"
+- Do NOT add "!state_is_STATE_A" to the response — only include the target state the requirement explicitly asks for.
+
+NEGATION: Use the ! operator (e.g. "!request"), never a separate variable named "not_request".
 `;
 
 export const structnlExampleStr = `
