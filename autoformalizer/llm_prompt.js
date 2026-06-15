@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 
 // Ollama client uses the OpenAI-compatible REST API that Ollama exposes at port 11434.
 // Override OLLAMA_BASE_URL env var to point at a remote Ollama instance if needed.
-const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1';
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434/v1';
 // Large local models can take much longer than the SDK's 10-minute default to respond.
 // Override via OLLAMA_TIMEOUT_MS if needed.
 const OLLAMA_TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS) || 1_800_000;
@@ -44,25 +44,23 @@ export function resolveSchemaRefs(schema) {
   return resolve(schema);
 }
 
+// Strip markdown code fences that some models emit even in JSON mode.
+// Handles ```json ... ```, ``` ... ```, and leading/trailing whitespace.
+function stripJsonMarkdown(s) {
+  if (!s) return s;
+  const m = s.match(/^```(?:json)?\s*([\s\S]*?)\s*```\s*$/);
+  return m ? m[1] : s.trim();
+}
+
 // Sends a prompt to a locally-running Ollama model via its OpenAI-compatible endpoint.
-// Uses Ollama's native structured output (json_schema response_format) which applies
-// constrained grammar decoding to guarantee the output matches the schema exactly.
+// Uses json_object response_format (supported by all Ollama versions). Ollama >=0.4
+// also supports json_schema constrained decoding, but json_object is safe for all versions.
 export async function queryOllama(localMessages, schema = null, model = 'llama3.2', maxEmptyRetry = 2) {
   const messages = formatLocalmessagesToOpenai(localMessages);
-  let responseFormat;
-  if (schema !== null) {
-    const schemaJson = resolveSchemaRefs(schema);
-    responseFormat = {
-      type: 'json_schema',
-      json_schema: {
-        name: 'output',
-        strict: true,
-        schema: schemaJson,
-      },
-    };
-  } else {
-    responseFormat = { type: 'json_object' };
-  }
+  // Use json_object for broad Ollama version compatibility.
+  // Schema is passed only for documentation/prompt context; constrained decoding
+  // requires Ollama >=0.4 and is not relied upon here.
+  const responseFormat = { type: 'json_object' };
   let raw = '';
   for (let attempt = 0; attempt <= maxEmptyRetry; attempt++) {
     console.log(`Querying Ollama (model=${model}, this may take several minutes for large local models)...`);
@@ -71,7 +69,7 @@ export async function queryOllama(localMessages, schema = null, model = 'llama3.
       messages,
       response_format: responseFormat,
     });
-    raw = response.choices[0].message.content;
+    raw = stripJsonMarkdown(response.choices[0].message.content);
     if (raw) {
       break;
     }

@@ -15,8 +15,8 @@ process.env.STRUCTNL_MODE = 'fretish'; // or "PSP"
 // No config needed, since we're using Ollama
 // process.env.GEMINI_API_KEY = "TODO"
 // process.env.OPENAI_API_KEY = "TODO"
-// Optionally override Ollama URL (default: http://localhost:11434/v1)
-// process.env.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+// Optionally override Ollama URL (default: http://127.0.0.1:11434/v1)
+// process.env.OLLAMA_BASE_URL = "http://127.0.0.1:11434/v1"
 
 process.env.DATA_HOME_DIR = './metadata';
 

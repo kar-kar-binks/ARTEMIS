@@ -269,7 +269,7 @@ export async function generateApDictViaOllama(dataHomeDir, curDatasetName, { mod
   const df = readExcelRows(curDfFile);
   const nlRequirements = df.map((row) => row['NL']).filter((v) => v !== null && v !== undefined);
 
-  const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1';
+  const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434/v1';
   // Large local models can take much longer than the SDK's 10-minute default to respond.
   // Override via OLLAMA_TIMEOUT_MS if needed.
   const ollamaTimeoutMs = Number(process.env.OLLAMA_TIMEOUT_MS) || 1_800_000;
