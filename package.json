@@ -1,0 +1,15 @@
+{
+  "name": "artemis",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "JavaScript port of the ARTEMIS NL-to-FRETish/LTL pipeline",
+  "main": "run_llm.js",
+  "scripts": {
+    "start": "node run_llm.js"
+  },
+  "dependencies": {
+    "openai": "^4.0.0",
+    "xlsx": "^0.18.5"
+  }
+}

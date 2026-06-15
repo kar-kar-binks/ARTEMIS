@@ -1,3 +1,6 @@
+# Node.js
+node_modules/
+
 # Python Virtual Environments
 myenv/
 venv/
