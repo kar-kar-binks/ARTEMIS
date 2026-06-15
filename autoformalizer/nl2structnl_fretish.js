@@ -46,7 +46,7 @@ export function checkBooleanFormula(fStr, retErrMsg = false) {
   }
   for (const tok of _findTokens(fStr)) {
     if (_LTL_OPS.has(tok)) {
-      const msg = `formula contains LTL/temporal operator '${tok}'`;
+      const msg = `formula contains LTL/temporal operator '${tok}' — temporal operators are FORBIDDEN in bool_exp fields; use only atomic propositions and boolean operators (!, &, |, ->, <->)`;
       return retErrMsg ? msg : false;
     }
   }
@@ -126,7 +126,7 @@ function getStructnlToLtlDict() {
 export const prefixNlTemplateStr = `
 To produce the structured natural language property, you compose it from a set of templates.
 If the chosen option contains boolean expression placeholders (i.e., bool_exp1, bool_exp2, bool_exp3, bool_exp4), you need to produce boolean expressions that will replace the placeholders.
-Boolean expressions can only contain boolean operators (e.g., !, &, |, ->, <->) and can only atomic propositions (NO NUMERICAL COMPARISON OPERATORS ALLOWED)
+Boolean expressions can only contain boolean operators (e.g., !, &, |, ->, <->) and atomic propositions. STRICTLY FORBIDDEN in bool_exp fields: temporal/LTL operators (G, F, X, U, R, W, M), numerical comparisons, and function calls. Do NOT use X (next), F (eventually), G (always), or U (until) inside any bool_exp field — those operators are inserted automatically by the template. A bool_exp must be a pure propositional logic formula over the atomic propositions only.
 `;
 
 export const structnlExampleStr = `
