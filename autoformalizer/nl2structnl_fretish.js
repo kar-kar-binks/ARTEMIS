@@ -1,6 +1,8 @@
 // JS port of nl2structnl_fretish.py.
 
 import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import * as llmPrompt from './llm_prompt.js';
 import {
   structuredNLTranslationsSchema,
@@ -109,12 +111,13 @@ function pyJsonDumps(value) {
 // DATA_HOME_DIR after importing this module (matching how run_llm.ipynb sets
 // os.environ["DATA_HOME_DIR"] before the equivalent Python module-level `open(...)`
 // is reached via the first `import data_loader`).
+const _moduleDir = dirname(fileURLToPath(import.meta.url));
+
 let _structnlToLtlDict = null;
 function getStructnlToLtlDict() {
   if (_structnlToLtlDict === null) {
-    const dataHomeDir = process.env.DATA_HOME_DIR;
     _structnlToLtlDict = JSON.parse(
-      readFileSync(`${dataHomeDir}/fretish_structnl_to_ltl_dict.json`, 'utf-8')
+      readFileSync(join(_moduleDir, 'fretish_structnl_to_ltl_dict.json'), 'utf-8')
     );
   }
   return _structnlToLtlDict;

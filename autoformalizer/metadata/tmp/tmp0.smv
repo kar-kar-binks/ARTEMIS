@@ -1,9 +1,0 @@
-MODULE main
-VAR
-limits : boolean;
-state_is_NOMINAL : boolean;
-state_is_FAULT : boolean;
-JUSTICE TRUE;
-LTLSPEC
-(!((((G (((! ((limits))) & (X ((limits)))) -> (X ((!state_is_NOMINAL & state_is_FAULT))))) & (((limits)) -> ((!state_is_NOMINAL & state_is_FAULT))))) & (((G (((! (((limits)) & ((state_is_NOMINAL)))) & (X (((limits)) & ((state_is_NOMINAL))))) -> (X (X ((state_is_FAULT)))))) & ((((limits)) & ((state_is_NOMINAL))) -> (X ((state_is_FAULT))))))))
-
