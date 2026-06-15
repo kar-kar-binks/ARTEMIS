@@ -1,18 +1,96 @@
 // JS port of nl2structnl_fretish.py.
 
 import { readFileSync } from 'fs';
-import {
-  checkBooleanFormula,
-  checkLtlFormula,
-  checkValidNonnegativeInteger,
-  getVariablesFromFormula,
-  parenthesize,
-} from './spot_utils.js';
 import * as llmPrompt from './llm_prompt.js';
 import {
   structuredNLTranslationsSchema,
   validateStructuredNLTranslations,
 } from './fretish_llm_output_schema.js';
+
+// ---------------------------------------------------------------------------
+// Formula helpers (formerly spot_utils.js's pure-JS fallbacks)
+// ---------------------------------------------------------------------------
+
+const _TOKEN_RE = /<->|->|[!&|()[\]]|[A-Za-z_][A-Za-z0-9_]*|\d+/g;
+const _BOOL_OPS = new Set(['!', '&', '|', '->', '<->']);
+const _LTL_OPS = new Set(['F', 'G', 'X', 'U', 'R', 'W', 'M']);
+const _CONSTANTS = new Set(['true', 'false', 'TRUE', 'FALSE', '1', '0']);
+
+function _balancedParens(s) {
+  let depth = 0;
+  for (const c of s) {
+    if (c === '(') {
+      depth += 1;
+    } else if (c === ')') {
+      depth -= 1;
+      if (depth < 0) {
+        return false;
+      }
+    }
+  }
+  return depth === 0;
+}
+
+function _findTokens(s) {
+  return [...s.matchAll(_TOKEN_RE)].map((m) => m[0]);
+}
+
+export function checkBooleanFormula(fStr, retErrMsg = false) {
+  if (!fStr) {
+    return retErrMsg ? 'boolean expression is empty or None' : false;
+  }
+  if (!_balancedParens(fStr)) {
+    return retErrMsg ? 'unbalanced parentheses' : false;
+  }
+  for (const tok of _findTokens(fStr)) {
+    if (_LTL_OPS.has(tok)) {
+      const msg = `formula contains LTL/temporal operator '${tok}'`;
+      return retErrMsg ? msg : false;
+    }
+  }
+  return retErrMsg ? '' : true;
+}
+
+export function getVariablesFromFormula(formulaStr) {
+  if (!formulaStr) {
+    return [];
+  }
+  const nonVars = new Set([..._BOOL_OPS, ..._LTL_OPS, ..._CONSTANTS, '(', ')']);
+  const seen = new Set();
+  const result = [];
+  for (const tok of _findTokens(formulaStr)) {
+    if (!nonVars.has(tok) && /^[A-Za-z_][A-Za-z0-9_]*$/.test(tok)) {
+      if (!seen.has(tok)) {
+        seen.add(tok);
+        result.push(tok);
+      }
+    }
+  }
+  return result;
+}
+
+export function checkLtlFormula(fStr, retErrMsg = false) {
+  if (!fStr) {
+    return retErrMsg ? 'formula is empty or None' : false;
+  }
+  if (!_balancedParens(fStr)) {
+    return retErrMsg ? 'unbalanced parentheses' : false;
+  }
+  return retErrMsg ? '' : true;
+}
+
+// Wrap a formula string in parens (replaces spot.formula(f).to_str(parenth=True)).
+export function parenthesize(fStr) {
+  if (!fStr) {
+    return fStr;
+  }
+  return `(${fStr})`;
+}
+
+export function checkValidNonnegativeInteger(fStr) {
+  const val = Number(fStr);
+  return Number.isInteger(val) && val > 0;
+}
 
 // Mimics Python's json.dumps() default separators=(', ', ': ') formatting,
 // for byte-identical LLM prompt text.
@@ -606,8 +684,7 @@ export function getLtlFromOutput(output, ltlTemplate = null) {
   return ltlTemplate;
 }
 
-// Replaces `spot.formula(...).to_str(parenth=True)` with the pure-JS `parenthesize`
-// fallback (already proven equivalent for this use, per spot_utils.js).
+// Replaces `spot.formula(...).to_str(parenth=True)` with the pure-JS `parenthesize` helper.
 export function getLtlFromOptions(optionDict) {
   let res = getStructnlToLtlTemplate(
     optionDict.decision1.option,

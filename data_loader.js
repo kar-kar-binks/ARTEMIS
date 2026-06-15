@@ -8,8 +8,8 @@ import {
   validateAPList,
 } from './fretish_llm_output_schema.js';
 import * as nl2structnlFretish from './nl2structnl_fretish.js';
+import { checkLtlFormula } from './nl2structnl_fretish.js';
 import { getExtrapolateOutputs } from './nl2structnl.js';
-import * as spotUtils from './spot_utils.js';
 
 const { dfOptionNames, decisionToItemList } = nl2structnlFretish;
 
@@ -179,13 +179,12 @@ export function loadOutputs(
   const getAllPossibleOptionsFunc = nl2structnlFretish.getAllPossibleDecisionOptionsForEx;
 
   let filteredOutputs = curOutputs.filter((output) =>
-    spotUtils.checkLtlFormula(getLtlFromOutputFunc(output))
+    checkLtlFormula(getLtlFromOutputFunc(output))
   );
 
   if (curMode === 'extra') {
     filteredOutputs = getExtrapolateOutputs(filteredOutputs, {
       MAX_DURATION: maxNDuration,
-      filterMode: null,
       getLtlFromOutputFunc,
       getAllPossibleOptionsFunc,
     });
