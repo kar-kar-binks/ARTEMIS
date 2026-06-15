@@ -1,6 +1,9 @@
 # Node.js
 node_modules/
 
+# Temporary NuSMV files written by nusmv_utils.js / test.js
+/tmp*.smv
+
 # Python Virtual Environments
 myenv/
 venv/

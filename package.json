@@ -6,7 +6,8 @@
   "description": "JavaScript port of the ARTEMIS NL-to-FRETish/LTL pipeline",
   "main": "run_llm.js",
   "scripts": {
-    "start": "node run_llm.js"
+    "start": "node run_llm.js",
+    "test": "node test.js"
   },
   "dependencies": {
     "openai": "^4.0.0",
