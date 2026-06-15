@@ -5,7 +5,7 @@
 //
 // To run: `node run_llm.js`
 
-import { writeFileSync } from 'fs';
+import { writeFileSync, mkdirSync } from 'fs';
 import XLSX from 'xlsx';
 import * as dataLoader from './data_loader.js';
 import * as llmPrompt from './llm_prompt.js';
@@ -88,6 +88,7 @@ async function runSingleTask(curDatasetName, model, rowIdx, curMethod) {
         throw new Error(`Unknown method: ${curMethod}`);
       }
       curExpName = `${saveDir}/${curDatasetName}-${rowIdx}_model-${model}_trials-${numTrial}`;
+      mkdirSync(saveDir, { recursive: true });
       writeFileSync(`${curExpName}_${curMethod}.json`, JSON.stringify(outputs));
       console.log(rowIdx, curMethod, 'done!', 'num outputs:', outputs.length);
       isDone = true;
