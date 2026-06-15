@@ -271,7 +271,10 @@ export async function generateApDictViaOllama(dataHomeDir, curDatasetName, { mod
   const nlRequirements = df.map((row) => row['NL']).filter((v) => v !== null && v !== undefined);
 
   const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1';
-  const ollamaClient = new OpenAI({ baseURL: ollamaBaseUrl, apiKey: 'ollama' });
+  // Large local models can take much longer than the SDK's 10-minute default to respond.
+  // Override via OLLAMA_TIMEOUT_MS if needed.
+  const ollamaTimeoutMs = Number(process.env.OLLAMA_TIMEOUT_MS) || 1_800_000;
+  const ollamaClient = new OpenAI({ baseURL: ollamaBaseUrl, apiKey: 'ollama', timeout: ollamaTimeoutMs });
 
   const systemPrompt =
     'You are an expert in requirements engineering and formal specification. ' +
@@ -309,6 +312,7 @@ export async function generateApDictViaOllama(dataHomeDir, curDatasetName, { mod
   ];
   let raw = null;
   for (let trial = 0; trial < maxRetry; trial++) {
+    console.log(`Querying Ollama (model=${model}, this may take several minutes for large local models)...`);
     const response = await ollamaClient.chat.completions.create({
       model,
       messages,

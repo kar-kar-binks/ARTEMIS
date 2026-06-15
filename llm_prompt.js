@@ -5,7 +5,10 @@ import OpenAI from 'openai';
 // Ollama client uses the OpenAI-compatible REST API that Ollama exposes at port 11434.
 // Override OLLAMA_BASE_URL env var to point at a remote Ollama instance if needed.
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1';
-const ollamaClient = new OpenAI({ baseURL: OLLAMA_BASE_URL, apiKey: 'ollama' });
+// Large local models can take much longer than the SDK's 10-minute default to respond.
+// Override via OLLAMA_TIMEOUT_MS if needed.
+const OLLAMA_TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS) || 1_800_000;
+const ollamaClient = new OpenAI({ baseURL: OLLAMA_BASE_URL, apiKey: 'ollama', timeout: OLLAMA_TIMEOUT_MS });
 
 // localMessages: list of {role: "system"|"user"|"assistant", text: str}
 
@@ -62,6 +65,7 @@ export async function queryOllama(localMessages, schema = null, model = 'llama3.
   }
   let raw = '';
   for (let attempt = 0; attempt <= maxEmptyRetry; attempt++) {
+    console.log(`Querying Ollama (model=${model}, this may take several minutes for large local models)...`);
     const response = await ollamaClient.chat.completions.create({
       model,
       messages,
